@@ -1,12 +1,13 @@
 package token
 
 const (
-	DOCTYPE   = "DOCTYPE"
-	STARTTAG  = "STARTTAG"
-	ENDTAG    = "ENDTAG"
-	COMMENT   = "COMMENT"
-	CHARACTER = "CHARACTER"
-	EOF       = "EOF"
+	DOCTYPE        = "DOCTYPE"
+	STARTTAG       = "STARTTAG"
+	ENDTAG         = "ENDTAG"
+	COMMENT        = "COMMENT"
+	CHARACTER      = "CHARACTER"
+	EOF            = "EOF"
+	NOTIMPLEMENTED = "NOTIMPLEMENTED"
 )
 
 type TokenType string
