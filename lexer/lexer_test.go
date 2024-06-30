@@ -7,8 +7,9 @@ import (
 )
 
 type TokenTest struct {
-	expectedType    token.TokenType
-	expectedLiteral []byte
+	expectedType        token.TokenType
+	expectedLiteral     []byte
+	expectedForceQuirks bool
 }
 
 func TestGeneral(t *testing.T) {
@@ -20,24 +21,24 @@ func TestTagOpen(t *testing.T) {
 	inputs := [][]byte{[]byte("<"), []byte(`<<`), []byte(`<#`), []byte(`<--`)}
 	tests := [][]TokenTest{
 		[]TokenTest{
-			{token.CHARACTER, []byte{'<'}},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.CHARACTER, []byte{'<'}, false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.CHARACTER, []byte{'<'}},
-			{token.CHARACTER, []byte{'<'}},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.CHARACTER, []byte{'<'}, false},
+			{token.CHARACTER, []byte{'<'}, false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.CHARACTER, []byte{'<'}},
-			{token.CHARACTER, []byte{'#'}},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.CHARACTER, []byte{'<'}, false},
+			{token.CHARACTER, []byte{'#'}, false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.CHARACTER, []byte{'<'}},
-			{token.CHARACTER, []byte{'-'}},
-			{token.CHARACTER, []byte{'-'}},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.CHARACTER, []byte{'<'}, false},
+			{token.CHARACTER, []byte{'-'}, false},
+			{token.CHARACTER, []byte{'-'}, false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 	}
 	nextTokenTestFormat(t, inputs, tests)
@@ -47,12 +48,12 @@ func TestEndTagOpen(t *testing.T) {
 	inputs := [][]byte{[]byte(`</`), []byte(`</>`)}
 	tests := [][]TokenTest{
 		[]TokenTest{
-			{token.CHARACTER, []byte("<")},
-			{token.CHARACTER, []byte("/")},
-			{token.EOF, []byte("EOF")},
+			{token.CHARACTER, []byte("<"), false},
+			{token.CHARACTER, []byte("/"), false},
+			{token.EOF, []byte("EOF"), false},
 		},
 		[]TokenTest{
-			{token.EOF, []byte("EOF")},
+			{token.EOF, []byte("EOF"), false},
 		},
 	}
 	nextTokenTestFormat(t, inputs, tests)
@@ -62,39 +63,39 @@ func TestTagName(t *testing.T) {
 	inputs := [][]byte{[]byte(`<a></a>`), []byte(`<A></A>`), []byte(`<h2></H2>`), []byte(`<H2></h2>`), []byte(`<quote></quote>`), []byte(`<QUOTE></QUOTE>`), []byte(`<QuoTE></qUOte>`)}
 	tests := [][]TokenTest{
 		[]TokenTest{
-			{token.STARTTAG, []byte("a")},
-			{token.ENDTAG, []byte("a")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("a"), false},
+			{token.ENDTAG, []byte("a"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.STARTTAG, []byte("a")},
-			{token.ENDTAG, []byte("a")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("a"), false},
+			{token.ENDTAG, []byte("a"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.STARTTAG, []byte("h2")},
-			{token.ENDTAG, []byte("h2")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("h2"), false},
+			{token.ENDTAG, []byte("h2"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.STARTTAG, []byte("h2")},
-			{token.ENDTAG, []byte("h2")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("h2"), false},
+			{token.ENDTAG, []byte("h2"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.STARTTAG, []byte("quote")},
-			{token.ENDTAG, []byte("quote")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("quote"), false},
+			{token.ENDTAG, []byte("quote"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.STARTTAG, []byte("quote")},
-			{token.ENDTAG, []byte("quote")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("quote"), false},
+			{token.ENDTAG, []byte("quote"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 		[]TokenTest{
-			{token.STARTTAG, []byte("quote")},
-			{token.ENDTAG, []byte("quote")},
-			{token.EOF, []byte{'E', 'O', 'F'}},
+			{token.STARTTAG, []byte("quote"), false},
+			{token.ENDTAG, []byte("quote"), false},
+			{token.EOF, []byte{'E', 'O', 'F'}, false},
 		},
 	}
 	nextTokenTestFormat(t, inputs, tests)
@@ -108,21 +109,48 @@ func TestBogusCommentState(t *testing.T) {
 	}
 	tests := [][]TokenTest{
 		[]TokenTest{
-			{token.COMMENT, []byte("?random")},
-			{token.COMMENT, []byte("?random")},
-			{token.EOF, []byte("EOF")},
+			{token.COMMENT, []byte("?random"), false},
+			{token.COMMENT, []byte("?random"), false},
+			{token.EOF, []byte("EOF"), false},
 		},
 		[]TokenTest{
-			{token.COMMENT, []byte("DOCTYPR")},
-			{token.COMMENT, []byte("doctyp002")},
-			{token.EOF, []byte("EOF")},
+			{token.COMMENT, []byte("DOCTYPR"), false},
+			{token.COMMENT, []byte("doctyp002"), false},
+			{token.EOF, []byte("EOF"), false},
 		},
 		[]TokenTest{
-			{token.COMMENT, []byte("723#?")},
-			{token.COMMENT, []byte("#div")},
-			{token.EOF, []byte("EOF")},
+			{token.COMMENT, []byte("723#?"), false},
+			{token.COMMENT, []byte("#div"), false},
+			{token.EOF, []byte("EOF"), false},
 		},
 	}
+	nextTokenTestFormat(t, inputs, tests)
+}
+
+func TestCommentStart(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<!--><!--"),
+	}
+	tests := [][]TokenTest{
+		[]TokenTest{
+			{token.COMMENT, []byte(""), false},
+			{token.COMMENT, []byte(""), false},
+			{token.EOF, []byte("EOF"), false},
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests)
+}
+
+func TestDoctype(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<!DOCTYPE"),
+	}
+	tests := [][]TokenTest{
+		[]TokenTest{
+			{token.DOCTYPE, []byte(""), true},
+		},
+	}
+
 	nextTokenTestFormat(t, inputs, tests)
 }
 func nextTokenTestFormat(t *testing.T, inputs [][]byte, tests [][]TokenTest) {
@@ -135,6 +163,9 @@ func nextTokenTestFormat(t *testing.T, inputs [][]byte, tests [][]TokenTest) {
 			}
 			if !comparator.CmpSlice(tok.Literal, tt.expectedLiteral) {
 				t.Fatalf("tests[%d] : token[%d] - tokenLiteral wrong. expecte=%q, got=%q", j, i, tt.expectedLiteral, tok.Literal)
+			}
+			if tok.ForceQuirks != tt.expectedForceQuirks {
+				t.Fatalf("tests[%d] : token[%d] - token flag ForceQuirks wrong. expecte=%t, got=%t", j, i, tt.expectedForceQuirks, tok.ForceQuirks)
 			}
 
 		}

@@ -13,8 +13,9 @@ const (
 type TokenType string
 
 type Token struct {
-	Type    TokenType
-	Literal []byte
+	Type        TokenType
+	Literal     []byte
+	ForceQuirks bool
 }
 
 //DOCTYPE, start tag, end tag, comment, character, end-of-file

@@ -11,26 +11,28 @@ type MarkupDeclarationOpen struct {
 
 func (s MarkupDeclarationOpen) nextToken() *token.Token {
 	inputByte := []byte(s.lexer.input)
-	if comparator.CmpSlice(inputByte[s.lexer.position:s.lexer.position+3], []byte{'!', '-', '-'}) {
-		// 2 characters jump
+	s.lexer.readChar()
+	if comparator.CmpSlice(inputByte[s.lexer.position:s.lexer.position+2], []byte{'-', '-'}) {
+		// 1 character jump
 		s.lexer.readChar()
-		s.lexer.readChar()
+		t := &token.Token{token.COMMENT, []byte{}, false}
+		s.lexer.state = CommentStartState{s.lexer, t}
+		return s.lexer.state.nextToken()
 		// comment start state .
-	} else if comparator.CmpInsensitiveByteSlice(inputByte[s.lexer.position:s.lexer.position+8], []byte{'!', 'D', 'O', 'C', 'T', 'Y', 'P', 'E'}) {
-		// 7 charachters jump
+	} else if comparator.CmpInsensitiveByteSlice(inputByte[s.lexer.position:s.lexer.position+7], []byte{'D', 'O', 'C', 'T', 'Y', 'P', 'E'}) {
+		// 6 charachters jump
 		s.lexer.readChar()
 		s.lexer.readChar()
 		s.lexer.readChar()
 		s.lexer.readChar()
 		s.lexer.readChar()
 		s.lexer.readChar()
-		s.lexer.readChar()
-		//DOCTYPE State
+		s.lexer.state = DoctypeState{s.lexer}
+		return s.lexer.state.nextToken()
 	} else {
-		s.lexer.readChar()
 		s.lexer.state = BogusCommentState{s.lexer}
 		return s.lexer.state.nextToken()
 		//bogus comment state
 	}
-	return &token.Token{token.NOTIMPLEMENTED, []byte{}}
+	return &token.Token{token.NOTIMPLEMENTED, []byte{}, false}
 }
