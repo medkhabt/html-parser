@@ -4,8 +4,18 @@ type comparator[E comparable] func(E, E) bool
 
 // TODO test this
 func cmp[E comparable](x []E, y []E, f comparator[E]) bool {
+	if x == nil && y == nil {
+		return true
+	}
+	if x == nil || y == nil {
+		return false
+	}
 	if len(x) != len(y) {
 		return false
+	}
+
+	if len(x) == 0 {
+		return true
 	}
 	for i := 0; i < len(x); i++ {
 		if !f(x[i], y[i]) {

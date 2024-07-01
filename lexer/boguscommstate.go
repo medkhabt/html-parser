@@ -7,9 +7,10 @@ type BogusCommentState struct {
 }
 
 func (s BogusCommentState) nextToken() *token.Token {
-	t := &token.Token{token.COMMENT, []byte{}, false}
+
+	t := token.NewComment([]byte{})
 	for (s.lexer.ch != 0) && (s.lexer.ch != '>') {
-		t.Literal = append(t.Literal, s.lexer.ch)
+		t.Data = append(t.Data, s.lexer.ch)
 		s.lexer.readChar()
 	}
 	if s.lexer.ch == 0 {

@@ -15,7 +15,7 @@ func (s MarkupDeclarationOpen) nextToken() *token.Token {
 	if comparator.CmpSlice(inputByte[s.lexer.position:s.lexer.position+2], []byte{'-', '-'}) {
 		// 1 character jump
 		s.lexer.readChar()
-		t := &token.Token{token.COMMENT, []byte{}, false}
+		t := token.NewComment([]byte{})
 		s.lexer.state = CommentStartState{s.lexer, t}
 		return s.lexer.state.nextToken()
 		// comment start state .
@@ -34,5 +34,5 @@ func (s MarkupDeclarationOpen) nextToken() *token.Token {
 		return s.lexer.state.nextToken()
 		//bogus comment state
 	}
-	return &token.Token{token.NOTIMPLEMENTED, []byte{}, false}
+	return token.NewNotImplemented()
 }

@@ -14,8 +14,8 @@ func (s DataState) nextToken() *token.Token {
 		return s.lexer.state.nextToken()
 	case 0:
 		// TODO change the detection of the eof when implementing a io.Read
-		return &token.Token{token.EOF, []byte("EOF"), false}
+		return token.NewEOF()
 	}
-	t := &token.Token{token.CHARACTER, []byte{s.lexer.ch}, false}
+	t := token.NewCharacter([]byte{s.lexer.ch})
 	return t
 }

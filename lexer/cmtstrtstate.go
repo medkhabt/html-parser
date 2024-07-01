@@ -19,8 +19,8 @@ func (s CommentStartState) nextToken() *token.Token {
 		s.lexer.state = DataState{s.lexer}
 		return s.token
 	} else {
-		s.token.Literal = append(s.token.Literal, s.lexer.ch)
+		s.token.Data = append(s.token.Data, s.lexer.ch)
 		// change the state to CommentState and pass the token to then new state i would assume.
 	}
-	return &token.Token{token.NOTIMPLEMENTED, []byte(""), false}
+	return token.NewNotImplemented()
 }
