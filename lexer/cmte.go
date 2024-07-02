@@ -10,7 +10,8 @@ type CommentEndState struct {
 func (s CommentEndState) nextToken() *token.Token {
 	s.lexer.readChar()
 	if s.lexer.ch == '!' {
-		// switch end bang state
+		s.lexer.state = EndBangState{s.lexer, s.token}
+		return s.lexer.state.nextToken()
 	} else if s.lexer.ch == '>' {
 		s.lexer.state = DataState{s.lexer}
 		return s.token

@@ -20,11 +20,6 @@ type TokenTest struct {
 	expectedSelfClosing bool
 }
 
-func TestGeneral(t *testing.T) {
-	input := []byte("<test>ra1</test>")
-	l := New(input)
-	t.Logf("%v %v %v %v %v", l.NextToken(), l.NextToken(), l.NextToken(), l.NextToken(), l.NextToken())
-}
 func TestTagOpen(t *testing.T) {
 	inputs := [][]byte{[]byte("<"), []byte(`<<`), []byte(`<#`), []byte(`<--`)}
 	tests := [][]*TokenTest{
@@ -271,11 +266,13 @@ func TestCommentStartDash(t *testing.T) {
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 func TestCommentEndDash(t *testing.T) {
-	//TODO add test path that passes through end bang.
 	inputs := [][]byte{
 		[]byte("<!--t-"),    // comment -> .
 		[]byte("<!--t-t-"),  // comment -> . -> comment -> .
 		[]byte("<!--t--t-"), // comment -> . -> comment-end -> comment -> .
+		[]byte("<!--t--!-"),
+		[]byte("<!--t--!t-"),
+		[]byte("<!----!t-"),
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -290,15 +287,30 @@ func TestCommentEndDash(t *testing.T) {
 			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', 't'}),
 			newEmpty(token.EOF),
 		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'-', '-', '!', 't'}),
+			newEmpty(token.EOF),
+		},
 	}
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 func TestCommentEnd(t *testing.T) {
-	// TODO add test path that passes through  end bang.
 	inputs := [][]byte{
 		[]byte("<!----><!----"),         // comment start dash path
 		[]byte("<!--t--><!--t--"),       //comment -> comment-end-dash ->.
 		[]byte("<!--t--t--><!--t--t--"), // comment -> comment-end-dash -> commentend -> comment -> comment-end-dash ->.
+		[]byte("<!--t--!--><!--t--!--"),
+		[]byte("<!--t--!t--><!--t--!t--"),
+		[]byte("<!----!--><!----!--"),
+		[]byte("<!----!t--><!----!t--"),
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -316,8 +328,61 @@ func TestCommentEnd(t *testing.T) {
 			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', 't'}),
 			newEmpty(token.EOF),
 		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!'}),
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!', 't'}),
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'-', '-', '!'}),
+			newEmpty(token.COMMENT).data([]byte{'-', '-', '!'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'-', '-', '!', 't'}),
+			newEmpty(token.COMMENT).data([]byte{'-', '-', '!', 't'}),
+			newEmpty(token.EOF),
+		},
 	}
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestEndbang(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<!--t--!><!--t--!"),
+		[]byte("<!--t--!--!><!--t--!t--!>"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t'}),
+			newEmpty(token.COMMENT).data([]byte{'t'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!'}),
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', '!', 't'}),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+// GENERAL
+func TestGeneral(t *testing.T) {
+	inputs := [][]byte{[]byte("<!-- This is a comment -->")}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{' ', 'T', 'h', 'i', 's', ' ', 'i', 's', ' ', 'a', ' ', 'c', 'o', 'm', 'm', 'e', 'n', 't', ' '}),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+	//t.Logf("%v %v %v %v %v", l.NextToken(), l.NextToken(), l.NextToken(), l.NextToken(), l.NextToken())
+
 }
 func getFunctionName() string {
 	pc, _, _, _ := runtime.Caller(1)
