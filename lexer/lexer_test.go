@@ -221,6 +221,9 @@ func TestComment(t *testing.T) {
 		[]byte("<!---test"),
 		[]byte("<!--t"),
 		[]byte("<!---t"),
+		[]byte("<!--t-t"),  // from comment_end_dash
+		[]byte("<!--t--t"), // from comment_end passing by enddash
+		[]byte("<!----t"),  // from comment_end passing by startdash
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -239,6 +242,18 @@ func TestComment(t *testing.T) {
 			newEmpty(token.COMMENT).data([]byte{'-', 't'}),
 			newEmpty(token.EOF),
 		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'-', '-', 't'}),
+			newEmpty(token.EOF),
+		},
 	}
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
@@ -250,6 +265,55 @@ func TestCommentStartDash(t *testing.T) {
 		[]*TokenTest{
 			newEmpty(token.COMMENT).data([]byte{}),
 			newEmpty(token.COMMENT).data([]byte{}),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+func TestCommentEndDash(t *testing.T) {
+	//TODO add test path that passes through end bang.
+	inputs := [][]byte{
+		[]byte("<!--t-"),    // comment -> .
+		[]byte("<!--t-t-"),  // comment -> . -> comment -> .
+		[]byte("<!--t--t-"), // comment -> . -> comment-end -> comment -> .
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', 't'}),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+func TestCommentEnd(t *testing.T) {
+	// TODO add test path that passes through  end bang.
+	inputs := [][]byte{
+		[]byte("<!----><!----"),         // comment start dash path
+		[]byte("<!--t--><!--t--"),       //comment -> comment-end-dash ->.
+		[]byte("<!--t--t--><!--t--t--"), // comment -> comment-end-dash -> commentend -> comment -> comment-end-dash ->.
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{}),
+			newEmpty(token.COMMENT).data([]byte{}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t'}),
+			newEmpty(token.COMMENT).data([]byte{'t'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', 't'}),
+			newEmpty(token.COMMENT).data([]byte{'t', '-', '-', 't'}),
 			newEmpty(token.EOF),
 		},
 	}
@@ -269,7 +333,6 @@ func nextTokenTestFormat(t *testing.T, inputs [][]byte, tests [][]*TokenTest, te
 	}
 
 }
-
 func assertEqual(t *testing.T, tok *token.Token, tt *TokenTest, testIndex int, tokenIndex int, testName string) {
 	if tok.Type != tt.expectedType {
 		t.Fatalf("[%s] ::: tests[%d] : token[%d] - token type wrong. expecte=%q, got=%q", testName, testIndex, tokenIndex, tt.expectedType, tok.Type)
