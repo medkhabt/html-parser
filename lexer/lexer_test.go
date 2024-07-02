@@ -3,6 +3,8 @@ package lexer
 import (
 	"github/medkhabt/prs/comparator"
 	"github/medkhabt/prs/token"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -47,7 +49,7 @@ func TestTagOpen(t *testing.T) {
 			newEmpty(token.EOF),
 		},
 	}
-	nextTokenTestFormat(t, inputs, tests)
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
 func TestEndTagOpen(t *testing.T) {
@@ -62,7 +64,7 @@ func TestEndTagOpen(t *testing.T) {
 			newEmpty(token.EOF),
 		},
 	}
-	nextTokenTestFormat(t, inputs, tests)
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
 func TestTagName(t *testing.T) {
@@ -104,7 +106,7 @@ func TestTagName(t *testing.T) {
 			newEmpty(token.EOF),
 		},
 	}
-	nextTokenTestFormat(t, inputs, tests)
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
 func TestBogusCommentState(t *testing.T) {
@@ -130,7 +132,7 @@ func TestBogusCommentState(t *testing.T) {
 			newEmpty(token.EOF),
 		},
 	}
-	nextTokenTestFormat(t, inputs, tests)
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
 func TestCommentStart(t *testing.T) {
@@ -144,7 +146,7 @@ func TestCommentStart(t *testing.T) {
 			newEmpty(token.EOF),
 		},
 	}
-	nextTokenTestFormat(t, inputs, tests)
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
 func TestDoctype(t *testing.T) {
@@ -158,33 +160,119 @@ func TestDoctype(t *testing.T) {
 		},
 	}
 
-	nextTokenTestFormat(t, inputs, tests)
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
-func nextTokenTestFormat(t *testing.T, inputs [][]byte, tests [][]*TokenTest) {
+
+func TestBeforeAttrName(t *testing.T) {
+	// EOF OR >
+	inputs := [][]byte{
+		[]byte("<test ><test "),
+		[]byte("</test ></test "),
+		[]byte("<test  / >"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")),
+			newEmpty(token.STARTTAG).name([]byte("test")),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.ENDTAG).name([]byte("test")),
+			newEmpty(token.ENDTAG).name([]byte("test")),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestSelfClosingStartTag(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test /><test   /><test /"),
+		[]byte("<test/><test/"),
+		[]byte("<test//><test / /><test / /"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
+			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
+			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestComment(t *testing.T) {
+	//TODO add Tests for flow that comes Comment_end and Comment_end_dash
+	inputs := [][]byte{
+		[]byte("<!--test"),
+		[]byte("<!---test"),
+		[]byte("<!--t"),
+		[]byte("<!---t"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t', 'e', 's', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'-', 't', 'e', 's', 't'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'t'}),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{'-', 't'}),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+func TestCommentStartDash(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<!---><!---"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.COMMENT).data([]byte{}),
+			newEmpty(token.COMMENT).data([]byte{}),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+func getFunctionName() string {
+	pc, _, _, _ := runtime.Caller(1)
+	return strings.Split(runtime.FuncForPC(pc).Name(), ".")[1]
+}
+func nextTokenTestFormat(t *testing.T, inputs [][]byte, tests [][]*TokenTest, testName string) {
 	for j, inp := range inputs {
 		l := New(inp)
 		for i, tt := range tests[j] {
 			tok := l.NextToken()
-			assertEqual(t, tok, tt, j, i)
-
-			if tok.Type != tt.expectedType {
-				t.Fatalf("tests[%d] : token[%d] - tokentype wrong. expecte=%q, got=%q", j, i, tt.expectedType, tok.Type)
-			}
-			if !comparator.CmpSlice(tok.Data, tt.expectedData) {
-				t.Fatalf("tests[%d] : token[%d] - tokenLiteral wrong. expecte=%q, got=%q", j, i, tt.expectedData, tok.Data)
-			}
-			if tok.ForceQuirks != tt.expectedForceQuirks {
-				t.Fatalf("tests[%d] : token[%d] - token flag ForceQuirks wrong. expecte=%t, got=%t", j, i, tt.expectedForceQuirks, tok.ForceQuirks)
-			}
-
+			assertEqual(t, tok, tt, j, i, testName)
 		}
 	}
 
 }
 
-func assertEqual(t *testing.T, tok *token.Token, tt *TokenTest, testIndex int, tokenIndex int) {
+func assertEqual(t *testing.T, tok *token.Token, tt *TokenTest, testIndex int, tokenIndex int, testName string) {
 	if tok.Type != tt.expectedType {
-		t.Fatalf("tests[%d] : token[%d] - token type wrong. expecte=%q, got=%q", testIndex, tokenIndex, tt.expectedType, tok.Type)
+		t.Fatalf("[%s] ::: tests[%d] : token[%d] - token type wrong. expecte=%q, got=%q", testName, testIndex, tokenIndex, tt.expectedType, tok.Type)
 	}
 	if !comparator.CmpSlice(tok.Data, tt.expectedData) {
 		t.Fatalf("tests[%d] : token[%d] - token data wrong. expecte=%q, got=%q", testIndex, tokenIndex, tt.expectedData, tok.Data)

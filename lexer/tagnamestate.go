@@ -15,8 +15,12 @@ func (s TagNameState) nextToken() *token.Token {
 		return s.token
 	} else if s.lexer.ch == byte(0x09) || s.lexer.ch == byte(0x0A) || s.lexer.ch == byte(0x0C) || s.lexer.ch == byte(0x20) {
 		// switch to before attribute name state, also passs the token
+		s.lexer.state = BeforeAttributeNameState{s.lexer, s.token}
+		return s.lexer.state.nextToken()
 	} else if s.lexer.ch == '/' {
 		// self closing start tag state
+		s.lexer.state = SelfClosingStartTag{s.lexer, s.token}
+		return s.lexer.state.nextToken()
 	} else if s.lexer.ch == 0 {
 		// reconsume eof in data state
 	} else {

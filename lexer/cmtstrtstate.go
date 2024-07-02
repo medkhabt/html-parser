@@ -11,7 +11,8 @@ type CommentStartState struct {
 func (s CommentStartState) nextToken() *token.Token {
 	s.lexer.readChar()
 	if s.lexer.ch == '-' {
-		// comment start dash state
+		s.lexer.state = CommentStartDashState{s.lexer, s.token}
+		return s.lexer.state.nextToken()
 	} else if s.lexer.ch == 0 || s.lexer.ch == '>' {
 		if s.lexer.ch == 0 {
 			s.lexer.unreadChar()
@@ -20,7 +21,8 @@ func (s CommentStartState) nextToken() *token.Token {
 		return s.token
 	} else {
 		s.token.Data = append(s.token.Data, s.lexer.ch)
-		// change the state to CommentState and pass the token to then new state i would assume.
+		s.lexer.state = CommentState{s.lexer, s.token}
+		return s.lexer.state.nextToken()
 	}
 	return token.NewNotImplemented()
 }
