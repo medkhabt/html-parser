@@ -1,6 +1,7 @@
 package lexer
 
 import (
+	"fmt"
 	"github/medkhabt/prs/comparator"
 	"github/medkhabt/prs/token"
 	"runtime"
@@ -189,6 +190,7 @@ func TestSelfClosingStartTag(t *testing.T) {
 		[]byte("<test /><test   /><test /"),
 		[]byte("<test/><test/"),
 		[]byte("<test//><test / /><test / /"),
+		[]byte("<test name/>"),
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -203,6 +205,10 @@ func TestSelfClosingStartTag(t *testing.T) {
 		[]*TokenTest{
 			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
 			newEmpty(token.STARTTAG).name([]byte("test")).setSelfClosingFlag(),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "").setSelfClosingFlag(),
 			newEmpty(token.EOF),
 		},
 	}
@@ -372,6 +378,57 @@ func TestEndbang(t *testing.T) {
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
+func TestAttributeName(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name><test name"),
+		[]byte("<test name name2>"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", ""),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "").attribute("name2", ""),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestAfterAttributeName(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name  ><test name     "),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", ""),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+// TODO tests still failing, implemement BeforeAttributeValueState
+func TestBeforeAttributeValue(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name=><test name"),
+		[]byte("<test name    =       >"), // passing throught AfterAttributeName (spaces after name)
+		// []byte("<test name=t >") // TODO require AttributeValueUnQuotedState
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", ""),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", ""),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
 // GENERAL
 func TestGeneral(t *testing.T) {
 	inputs := [][]byte{[]byte("<!-- This is a comment -->")}
@@ -414,15 +471,24 @@ func assertEqual(t *testing.T, tok *token.Token, tt *TokenTest, testIndex int, t
 	if !comparator.CmpSlice(tok.SystemId, tt.expectedSystemId) {
 		t.Fatalf("tests[%d] : token[%d] - token system id wrong. expecte=%q, got=%q", testIndex, tokenIndex, tt.expectedSystemId, tok.SystemId)
 	}
-	if !comparator.CmpSlice(tok.Attributes, tt.expectedAttributes) {
-		t.Fatalf("tests[%d] : token[%d] - token attributes wrong. expecte=%+v, got=%+v", testIndex, tokenIndex, tt.expectedAttributes, tok.Attributes)
+	if !comparator.CmpSlicePointers(tok.Attributes, tt.expectedAttributes) {
+		attributesFormat := "["
+		if len(tok.Attributes) != len(tt.expectedAttributes) {
+			attributesFormat = fmt.Sprintf("len not equal got=%d, expecte=%d", len(tok.Attributes), len(tt.expectedAttributes))
+		} else {
+			for i, v := range tok.Attributes {
+				attributesFormat += fmt.Sprintf("[%d] got(%s,%s) :: expected(%s,%s), ", i, v.Name, v.Value, tt.expectedAttributes[i].Name, tt.expectedAttributes[i].Value)
+			}
+		}
+		attributesFormat += "]"
+		t.Fatalf("tests[%d] : token[%d] - token attributes wrong. %s", testIndex, tokenIndex, attributesFormat)
 	}
 	// Just wanted to make it a little more fun, got bored refactoring, it's just a XOR.
 	if (tok.ForceQuirks && !tt.expectedForceQuirks) || (!tok.ForceQuirks && tt.expectedForceQuirks) {
-		t.Fatalf("tests[%d] : token[%d] - token attributes wrong. expecte=%t, got=%t", testIndex, tokenIndex, tt.expectedForceQuirks, tok.ForceQuirks)
+		t.Fatalf("tests[%d] : token[%d] - token forceQuirk flag wrong. expecte=%t, got=%t", testIndex, tokenIndex, tt.expectedForceQuirks, tok.ForceQuirks)
 	}
 	if (tok.SelfClosing && !tt.expectedSelfClosing) || (!tok.SelfClosing && tt.expectedSelfClosing) {
-		t.Fatalf("tests[%d] : token[%d] - token attributes wrong. expecte=%t, got=%t", testIndex, tokenIndex, tt.expectedSelfClosing, tok.SelfClosing)
+		t.Fatalf("tests[%d] : token[%d] - token selfClosing flag  wrong. expecte=%t, got=%t", testIndex, tokenIndex, tt.expectedSelfClosing, tok.SelfClosing)
 	}
 
 }
@@ -450,8 +516,8 @@ func (tt *TokenTest) unsetForceQuirksFlag() *TokenTest {
 	tt.expectedForceQuirks = false
 	return tt
 }
-func (tt *TokenTest) attribute(name, value []byte) *TokenTest {
-	tt.expectedAttributes = append(tt.expectedAttributes, &token.Attribute{string(name), string(value)})
+func (tt *TokenTest) attribute(name, value string) *TokenTest {
+	tt.expectedAttributes = append(tt.expectedAttributes, &token.Attribute{name, value})
 	return tt
 }
 func (tt *TokenTest) systemId(x []byte) *TokenTest {

@@ -38,3 +38,9 @@ func CmpSlice[E comparable](x []E, y []E) bool {
 		return u == w
 	})
 }
+
+func CmpSlicePointers[E comparable](x []*E, y []*E) bool {
+	return cmp(x, y, func(u *E, w *E) bool {
+		return *u == *w
+	})
+}
