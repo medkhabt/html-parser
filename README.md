@@ -8,4 +8,9 @@ the lexer has many states. I am building a map for clear global idea on the stat
 
 here is the current map 
 ![map_02_july_2024](.resources/imgs/htmlparser_02_Juli_2024.png)
-[UPDATED 02/07/2024]
+I will uplaod new parts as new images, it become impossible to import the entire map, so i had to slice just the new parts :) 
+
+update 03/07/2024 (expend on the attribute name and value)
+
+![map_slice_03_july_2024](.resources/imgs/htmlparser_03_Juli_2024)
+[UPDATED 03/07/2024]
