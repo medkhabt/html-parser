@@ -12,5 +12,6 @@ I will uplaod new parts as new images, it become impossible to import the entire
 
 update 03/07/2024 (expend on the attribute name and value)
 
-![map_slice_03_july_2024](.resources/imgs/htmlparser_03_Juli_2024)
+![map_slice_03_july_2024](.resources/imgs/htmlparser_03_Juli_2024.png)
+
 [UPDATED 03/07/2024]
