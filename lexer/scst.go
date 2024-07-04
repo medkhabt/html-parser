@@ -2,6 +2,7 @@ package lexer
 
 import "github/medkhabt/prs/token"
 
+// TODO add state to the type name !
 type SelfClosingStartTag struct {
 	lexer *Lexer
 	token *token.Token

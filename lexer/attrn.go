@@ -14,6 +14,8 @@ func (s AttributeNameState) nextToken() *token.Token {
 		return s.lexer.state.nextToken()
 	} else if s.lexer.ch == '=' {
 		// switch to before attribute value
+		s.lexer.state = BeforeAttributeValueState{s.lexer, s.token}
+		return s.lexer.state.nextToken()
 	} else if s.lexer.ch == '/' {
 		s.lexer.state = SelfClosingStartTag{s.lexer, s.token}
 		return s.lexer.state.nextToken()

@@ -165,6 +165,7 @@ func TestBeforeAttrName(t *testing.T) {
 		[]byte("<test ><test "),
 		[]byte("</test ></test "),
 		[]byte("<test  / >"),
+		[]byte("<test name=\"value\" >"), // TODO need After Attribute value quoted
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -181,6 +182,10 @@ func TestBeforeAttrName(t *testing.T) {
 			newEmpty(token.STARTTAG).name([]byte("test")),
 			newEmpty(token.EOF),
 		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "value"),
+			newEmpty(token.EOF),
+		},
 	}
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
@@ -191,6 +196,7 @@ func TestSelfClosingStartTag(t *testing.T) {
 		[]byte("<test/><test/"),
 		[]byte("<test//><test / /><test / /"),
 		[]byte("<test name/>"),
+		[]byte("<test name=\"value\"/>"),
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -209,6 +215,10 @@ func TestSelfClosingStartTag(t *testing.T) {
 		},
 		[]*TokenTest{
 			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "").setSelfClosingFlag(),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "value").setSelfClosingFlag(),
 			newEmpty(token.EOF),
 		},
 	}
@@ -382,6 +392,7 @@ func TestAttributeName(t *testing.T) {
 	inputs := [][]byte{
 		[]byte("<test name><test name"),
 		[]byte("<test name name2>"),
+		[]byte("<test name= \"value\"y>"), //TODO requires After attribute value quoted
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -390,6 +401,10 @@ func TestAttributeName(t *testing.T) {
 		},
 		[]*TokenTest{
 			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "").attribute("name2", ""),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "value").attribute("y", ""),
 			newEmpty(token.EOF),
 		},
 	}
@@ -409,12 +424,11 @@ func TestAfterAttributeName(t *testing.T) {
 	nextTokenTestFormat(t, inputs, tests, getFunctionName())
 }
 
-// TODO tests still failing, implemement BeforeAttributeValueState
 func TestBeforeAttributeValue(t *testing.T) {
 	inputs := [][]byte{
 		[]byte("<test name=><test name"),
 		[]byte("<test name    =       >"), // passing throught AfterAttributeName (spaces after name)
-		// []byte("<test name=t >") // TODO require AttributeValueUnQuotedState
+		[]byte("<test name=t >"),          // passing throught AttributeValueUnQuotedState
 	}
 	tests := [][]*TokenTest{
 		[]*TokenTest{
@@ -423,6 +437,65 @@ func TestBeforeAttributeValue(t *testing.T) {
 		},
 		[]*TokenTest{
 			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", ""),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "t"),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestAttributeValueSingleQuoted(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name='V"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestAttributeValueDoubleQuoted(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name=\"V"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestAttributeValueUnquoted(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name=value><test name=value"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "value"),
+			newEmpty(token.EOF),
+		},
+	}
+	nextTokenTestFormat(t, inputs, tests, getFunctionName())
+}
+
+func TestAfterAttributeValueQuoted(t *testing.T) {
+	inputs := [][]byte{
+		[]byte("<test name=\"value\"><test name=\"value\""),
+		[]byte("<test name='value'>"),
+	}
+	tests := [][]*TokenTest{
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "value"),
+			newEmpty(token.EOF),
+		},
+		[]*TokenTest{
+			newEmpty(token.STARTTAG).name([]byte("test")).attribute("name", "value"),
 			newEmpty(token.EOF),
 		},
 	}
@@ -441,6 +514,7 @@ func TestGeneral(t *testing.T) {
 	//t.Logf("%v %v %v %v %v", l.NextToken(), l.NextToken(), l.NextToken(), l.NextToken(), l.NextToken())
 
 }
+
 func getFunctionName() string {
 	pc, _, _, _ := runtime.Caller(1)
 	return strings.Split(runtime.FuncForPC(pc).Name(), ".")[1]
