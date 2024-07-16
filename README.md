@@ -17,4 +17,4 @@ update 03/07/2024 (expend on the attribute name and value)
 update 04/07/2024 (fix some mistakes on the map and add better placement to the after attribute value quoted state) 
 ![map_slice_04_july_2024](.resources/imgs/htmlparser_04_Juli_2024.png)
 
-[UPDATED 04/07/2024]
+[UPDATED 04/07/2024] (CURRENTLY ON HOLD, Wanted to make a vimscript to get TODO task in a nice way ^^')
